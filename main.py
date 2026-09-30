@@ -1,35 +1,52 @@
-from faster_whisper import WhisperModel
-import sounddevice as sd
-import numpy as np
+from speech import listen
+from llm import ask_jarvis
+from tts import speak
+from database import create_database, save_conversation
 
-model=WhisperModel(
-    "base",
-    device="cpu",
-    compute_type="int8")
 
-duration=5
-sample_rate=16000
+def main():
 
-print("Jarvis is listening....")
-print("Speak Now")
+    # Create database when JARVIS starts
+    create_database()
 
-audio=sd.rec(
-    int(duration*sample_rate),
-    samplerate=sample_rate,
-    channels=1,
-    dtype=np.float32
-)
+    print("JARVIS is ready.")
+    print("Hold SPACE to speak.")
+    print("Say 'goodbye jarvis' to exit.\n")
 
-sd.wait()
+    while True:
 
-print("Audio captured!")
-print("Audio Shape:", audio.shape)
+        # Listen
+        text = listen()
 
-segments, info=model.transcribe(audio.flatten())
+        if not text:
+            print("I didn't hear anything.")
+            continue
 
-text=""
+        print("You:", text)
 
-for segment in segments:
-    text += segment.text
+        # Exit command
+        if "goodbye jarvis" in text.lower():
+            goodbye = "Goodbye. I'll be here when you need me."
 
-print("You:", text.strip())
+            print("JARVIS:", goodbye)
+
+            speak(goodbye)
+
+            break
+
+        # Ask the AI
+        reply = ask_jarvis(text)
+
+        print("JARVIS:", reply)
+
+        # Save conversation
+        save_conversation(text, reply)
+
+        # Speak response
+        speak(reply)
+
+        print()
+
+
+if __name__ == "__main__":
+    main()
